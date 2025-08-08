@@ -1,7 +1,8 @@
 /*
-Interview Questions Practice
+Questionário 1
+    Adaptado para a realidade da base de dados que estamos utilizando.
 
-Source:
+Fonte:
 https://www.linkedin.com/posts/tajamulkhann_maang-sql-interview-questions-ugcPost-7328977269735981056-cx2W/?utm_source=social_share_send&utm_medium=member_desktop_web&rcm=ACoAACZDmecB_a04XxO9WjU9021EUv9lvNeHvRw
 */
 
