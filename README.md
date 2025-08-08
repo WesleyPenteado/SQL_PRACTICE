@@ -1,7 +1,7 @@
 # SQL - Questionários de entrevistas
 
 ## Overview
-    Este repositório foi criado com o intuito de compartilhar questionários e soluções que utilizo para desenvolver habilidades em consultas SQL. Os questionários são baseados em publicações do LinkedIn que apresentam desafios comuns em entrevistas de emprego.
+Este repositório foi criado com o intuito de compartilhar questionários e soluções que utilizo para desenvolver habilidades em consultas SQL. Os questionários são baseados em publicações do LinkedIn que apresentam desafios comuns em entrevistas de emprego.
 
 ## Quais skills posso desenvolver pelo questionário?
     Funções de agregação, window function, date time functions, segmentação e muito mais.
