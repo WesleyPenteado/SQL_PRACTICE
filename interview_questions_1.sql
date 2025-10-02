@@ -1,24 +1,24 @@
-/*
+/* -----------------------------------------------------------------------
 Questionário 1
     Adaptado para a realidade da base de dados que estamos utilizando.
 
 Fonte:
 https://www.linkedin.com/posts/tajamulkhann_maang-sql-interview-questions-ugcPost-7328977269735981056-cx2W/?utm_source=social_share_send&utm_medium=member_desktop_web&rcm=ACoAACZDmecB_a04XxO9WjU9021EUv9lvNeHvRw
-*/
+*/-----------------------------------------------------------------------
 
 
 -- 1) Daily count of active customers (bought at least twice)
 
 SELECT
-    customerkey,
+    orderdate,
     COUNT(distinct orderkey) AS total_orders
 FROM sales
 GROUP BY
-    customerkey
+    orderdate
 HAVING
     COUNT(distinct orderkey) >= 2
 ORDER BY
-    total_orders DESC;
+    orderdate ASC;
 
 -- 2.1) Find the 2nd highest order without using LIMIT or TOP
 
@@ -40,6 +40,7 @@ SELECT
 FROM dense_rank
 WHERE order_rank = 2;
 
+
 -- 2.2) Find the 5nd highest quantity order without using LIMIT or TOP
 
 with rank_table AS (
@@ -59,18 +60,31 @@ SELECT
     qtd_rank
 FROM rank_table
 WHERE
-    qtd_rank = 5
+    qtd_rank = 5;
 
 -- 3) Identify sales gaps in time_series (anomaly in month sales)
 
+WITH monthly_sales As (
+    SELECT
+        DATE_TRUNC('month', orderdate) AS order_month,
+        ROUND(SUM(netprice * quantity / exchangerate)::NUMERIC,2) AS net_price
+    FROM sales
+    GROUP BY
+        order_month
+    ORDER BY
+        order_month
+)
 SELECT
-    TO_CHAR(orderdate, 'YYYY-MM') AS order_year,
-    ROUND(SUM(netprice * quantity / exchangerate)::NUMERIC,2) AS net_price
-FROM sales
-GROUP BY
-    order_year
-ORDER BY
-    order_year
+    order_month,
+    net_price,
+    LAG(net_price) OVER (ORDER BY order_month) AS prev_month,
+    (net_price - LAG(net_price) OVER (ORDER BY order_month)) AS gap
+FROM monthly_sales
+ORDER BY order_month;
+
+
+
+
 
 
 -- 4) Fetch first purchase date per user and calculate days since then
@@ -94,6 +108,9 @@ FROM first_purchase_table
 WHERE dense_rank = 1
 ORDER BY
     interval
+
+
+
 
 -- 5) Join product and transaction tables and filter out null keys safely
 
