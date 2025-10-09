@@ -396,6 +396,54 @@ WHERE
 
 
 
+-- 13) Get clients with at least 3 purchases per week over last 2 months
+
+
+SELECT
+    customerkey,
+    TO_CHAR(orderdate, 'YYYY-MM') || ' (Week ' || TO_CHAR(orderdate, 'IW') || ')' AS order_week,
+    COUNT(DISTINCT orderkey) AS count_purchases
+FROM sales
+WHERE
+    orderdate >= (
+        SELECT MAX(orderdate) - INTERVAL '2 months'
+        FROM sales
+    ) 
+GROUP BY
+    customerkey,
+    TO_CHAR(orderdate, 'YYYY-MM') || ' (Week ' || TO_CHAR(orderdate, 'IW') || ')'
+HAVING
+    COUNT(DISTINCT orderkey)  >= 3
+ORDER BY
+    customerkey,
+    order_week;
+
+
+-- 14) Rank clients by total purchases in current quarter
+
+
+SELECT
+    customerkey,
+    'Q' || EXTRACT(QUARTER FROM orderdate)::int || ' ' || EXTRACT(YEAR FROM orderdate)::int AS quarter_label,
+    SUM(netprice * quantity * exchangerate) as net_revenue,
+    DENSE_RANK() OVER(
+        ORDER BY SUM(netprice * quantity * exchangerate) DESC
+        ) AS rank
+FROM sales
+WHERE orderdate >= (
+    SELECT DATE_TRUNC('quarter', MAX(orderdate))
+    FROM sales
+)
+GROUP BY
+    customerkey,
+    quarter_label
+ORDER BY
+    rank
+
+
+
+
+
 
 
 
