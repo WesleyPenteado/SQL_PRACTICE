@@ -438,10 +438,97 @@ GROUP BY
     customerkey,
     quarter_label
 ORDER BY
-    rank
+    rank;
 
 
 
+
+-- 15) Fetch clients who purchased same product multiple times in one month
+
+
+SELECT
+    TO_CHAR(orderdate, 'YYYY-MM') AS order_month,
+    customerkey,
+    productkey,
+    COUNT(productkey) AS product_count
+FROM sales
+GROUP BY
+    customerkey,
+    order_month,
+    productkey
+HAVING
+    COUNT(productkey) > 1
+ORDER BY
+    order_month,
+    customerkey,
+    product_count DESC;
+
+
+-- 16) Get top 5 products by profit margin across all categories
+
+WITH products_margin AS (
+    SELECT
+        s.productkey,
+        p.categorykey,
+        ROUND(SUM(netprice * quantity * exchangerate)::NUMERIC,2) as net_revenue,
+        ROUND(SUM(unitcost * quantity * exchangerate)::NUMERIC,2) as cost,
+        ROUND(
+            (SUM(netprice * quantity * exchangerate)::NUMERIC 
+            - SUM(unitcost * quantity * exchangerate)::NUMERIC
+            )/SUM(netprice * quantity * exchangerate)::NUMERIC
+            ,2) AS margin
+    FROM sales s
+    JOIN product p ON s.productkey = p.productkey
+    GROUP BY
+        s.productkey,
+        p.categorykey
+), products_rank AS (
+    SELECT *,
+        DENSE_RANK() OVER(
+            PARTITION BY categorykey
+            ORDER BY margin DESC
+        ) AS rank
+    FROM products_margin
+)
+SELECT *
+FROM products_rank
+WHERE
+    rank <= 5
+ORDER BY
+    categorykey, margin DESC
+
+
+-- 17) Compare rolling 30-day revenue cs previous 30 day window
+
+WITH daily_revenue AS (
+    SELECT
+        orderdate::date AS order_date,
+        SUM(netprice * quantity * exchangerate) AS daily_revenue
+    FROM sales
+    GROUP BY order_date
+),
+rolling_revenue AS (
+    SELECT
+        order_date,
+        ROUND(
+            SUM(daily_revenue) OVER (
+                ORDER BY order_date
+                ROWS BETWEEN 29 PRECEDING AND CURRENT ROW
+            )::numeric, 2
+        ) AS rolling_30day_revenue
+    FROM daily_revenue
+)
+SELECT
+    order_date,
+    rolling_30day_revenue,
+    LAG(rolling_30day_revenue, 30) OVER (ORDER BY order_date) AS previous_30day_revenue,
+    ROUND(
+        rolling_30day_revenue
+        - LAG(rolling_30day_revenue, 30) OVER (ORDER BY order_date),
+        2
+    ) AS comparison
+FROM rolling_revenue
+ORDER BY order_date DESC;
 
 
 
