@@ -531,6 +531,18 @@ FROM rolling_revenue
 ORDER BY order_date DESC;
 
 
+-- 18) Write an optimized SQL query using broadcast join hints for a small lookup tables
+
+SELECT /*+ BROADCAST(p) */
+    s.*,
+    p.categoryname
+FROM sales s
+JOIN product p
+    ON s.productkey = p.productkey
+LIMIT 10
+
+
+
 
 
 
