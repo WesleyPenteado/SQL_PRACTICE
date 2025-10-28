@@ -51,6 +51,69 @@ GROuP BY
 
 
 
+-- 2. Running Total -------------------------------------------------------------------------
+
+
+-- a) Calculate cumulative revenue by month
+
+WITH table_orders AS (
+SELECT
+    to_char(orderdate, 'YYYY-MM') AS month,
+    ROUND(SUM(unitprice * quantity * exchangerate)::numeric, 2) as net_revenue
+FROM sales
+GROUP BY month
+)
+SELECT
+    month,
+    net_revenue,
+    SUM(net_revenue) OVER(
+        ORDER BY month ROWS UNBOUNDED PRECEDING
+    ) AS rolling_revenue
+FROM table_orders
+ORDER BY month DESC;
+
+
+-- b) Calculate year to date calculations
+
+WITH table_orders AS (
+SELECT
+    to_char(orderdate, 'YYYY-MM') AS month,
+    extract(year from orderdate) AS year,
+    ROUND(SUM(unitprice * quantity * exchangerate)::numeric, 2) as net_revenue
+FROM sales
+GROUP BY month, year
+)
+SELECT
+    month,
+    year,
+    net_revenue,
+    SUM(net_revenue) OVER(
+        PARTITION BY year
+        ORDER BY month ROWS UNBOUNDED PRECEDING
+    ) AS rolling_revenue
+FROM table_orders
+ORDER BY month DESC;
+
+-- c) Moving Averages (Two before + current) for projections
+
+WITH table_orders AS (
+SELECT
+    to_char(orderdate, 'YYYY-MM') AS month,
+    ROUND(SUM(unitprice * quantity * exchangerate)::numeric, 2) as net_revenue
+FROM sales
+GROUP BY month
+)
+SELECT
+    month,
+    net_revenue,
+    AVG(net_revenue) OVER(
+        ORDER BY month ROWS BETWEEN 2 PRECEDING AND CURRENT ROW
+    ) AS rolling_avg
+FROM table_orders
+ORDER BY month DESC;
+
+
+
 
 
 
