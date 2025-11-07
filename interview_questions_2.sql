@@ -114,9 +114,121 @@ ORDER BY month DESC;
 
 
 
+-- 3. Top-N Per Group Pattern -------------------------------------------------------------------------
+
+-- a) Find top 3 products in each category
+
+WITH product_revenue AS (
+    SELECT
+        productname,
+        categoryname,
+        ROUND(SUM(unitprice * quantity * exchangerate)::NUMERIC, 2) AS net_revenue
+    FROM sales s
+    JOIN product p ON s.productkey = p.productkey
+    GROUP BY
+        productname,
+        categoryname
+), rank_table AS (
+    SELECT
+        *,
+        RANK() OVER(
+            PARTITION BY categoryname
+            ORDER BY net_revenue DESC
+        ) AS top_products --Used rank() to consider possibility of ties
+    FROM product_revenue
+)
+SELECT
+    *
+FROM rank_table
+WHERE top_products <= 3;
 
 
 
+
+-- b) Get the top 3 revenue cities per country
+
+
+WITH region_revenue AS (
+    SELECT
+        city,
+        country,
+        ROUND(SUM(unitprice * quantity * exchangerate)::NUMERIC, 2) AS net_revenue
+    FROM sales s
+    JOIN customer c ON s.customerkey = c.customerkey
+    GROUP BY
+        city,
+        country
+), rank_table AS (
+    SELECT
+        *,
+        RANK() OVER(
+            PARTITION BY country
+            ORDER BY net_revenue DESC
+        ) AS top_city --Used rank() to consider possibility of ties
+    FROM region_revenue
+)
+SELECT
+    *
+FROM rank_table
+WHERE top_city <= 3;
+
+
+
+-- 4. The Gap & Island Pattern -------------------------------------------------------------------------
+
+-- a) Find periods of no sales
+
+WITH table_sales AS (
+    SELECT
+        orderdate,
+        LAG(orderdate, 1) OVER(
+                ORDER BY orderdate
+        ) AS last_revenue_date,
+        ROUND(sum(quantity * netprice * exchangerate)::NUMERIC,2) AS net_revenue
+    FROM sales
+    GROUP BY orderdate
+)
+SELECT
+    orderdate AS gap_end,
+    last_revenue_date AS gap_start,
+    (orderdate - last_revenue_date)-1 AS GAP_days
+FROM table_sales
+WHERE (orderdate - last_revenue_date)-1 >= 1
+ORDER BY orderdate
+
+
+
+
+-- b) Identify consecutive days with sales > $180K
+
+WITH table_sales AS (
+    SELECT
+        orderdate AS gap_end,
+        ROUND(sum(quantity * netprice * exchangerate)::NUMERIC,2) AS start_revenue
+    FROM sales
+    GROUP BY gap_end
+), table_lags AS (
+    SELECT
+        gap_end,
+        LAG(gap_end, 1) OVER(
+                ORDER BY gap_end
+        ) AS gap_start,
+        start_revenue,
+        LAG(start_revenue, 1) OVER(
+                ORDER BY gap_end
+        ) AS end_revenue
+    FROM table_sales
+)
+SELECT
+    gap_start,
+    gap_end,
+    start_revenue,
+    end_revenue
+FROM table_lags
+WHERE (gap_end - gap_start)-1 = 0
+    AND start_revenue > 180000
+    AND end_revenue > 180000
+ORDER BY gap_end
 
 
 
